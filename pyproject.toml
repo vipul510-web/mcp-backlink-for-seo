@@ -2,7 +2,14 @@
 name = "backlink-mcp"
 version = "0.1.0"
 description = "Free backlink discovery MCP server using DuckDuckGo, Wayback Machine, and web scraping"
+readme = "README.md"
+license = { text = "MIT" }
 requires-python = ">=3.10"
+
+[project.urls]
+Homepage = "https://www.sellonllm.com/backlink-mcp.html"
+Repository = "https://github.com/vipul510-web/mcp-backlink-for-seo"
+"Bug Tracker" = "https://github.com/vipul510-web/mcp-backlink-for-seo/issues"
 dependencies = [
     "mcp[cli]>=1.0.0",
     "duckduckgo-search>=6.0.0",

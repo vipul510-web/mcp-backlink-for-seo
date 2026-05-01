@@ -1,8 +1,12 @@
 # backlink-mcp
 
-> Free MCP server for backlink discovery, link building, and SEO outreach — powered by DuckDuckGo, Wayback Machine, and web scraping. No paid APIs required.
+**[Full docs & install guide → sellonllm.com/backlink-mcp.html](https://www.sellonllm.com/backlink-mcp.html)**
+
+> Automate backlink research, unlinked mention hunting, and outreach prep inside your AI assistant. Free, no API keys required.
 
 Connect to **Claude**, **Cursor**, or any MCP-compatible AI assistant and let it find backlink opportunities, discover unlinked mentions, research prospects, and extract contact info for outreach — all for free.
+
+Part of the **[SellOnLLM SEO MCP suite](https://www.sellonllm.com)** — a hub of free MCP servers for SEO and AI visibility.
 
 ---
 
@@ -156,6 +160,16 @@ PRs welcome. High-impact areas:
 - Broken link detection (find dead pages on prospect sites)
 - Bulk processing (run across a list of URLs)
 - Output to CSV / Google Sheets
+
+---
+
+## Part of SellOnLLM
+
+This MCP is part of the [SellOnLLM](https://www.sellonllm.com) SEO MCP suite — free, open-source MCP servers for SEO and AI visibility built for Claude and Cursor.
+
+- [Backlink MCP](https://www.sellonllm.com/backlink-mcp.html) — this tool
+- [GA4 + Search Console MCP](https://www.sellonllm.com) — query your traffic and rankings from your AI assistant
+- [AI Visibility MCP](https://www.sellonllm.com) — check if your site is cited by AI tools like Perplexity
 
 ---
 
