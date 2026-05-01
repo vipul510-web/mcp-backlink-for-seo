@@ -1,0 +1,12 @@
+startCommand:
+  type: stdio
+  configSchema:
+    type: object
+    properties: {}
+    required: []
+  commandFunction: |-
+    (_config) => ({
+      command: "python",
+      args: ["server.py"],
+      env: {}
+    })
