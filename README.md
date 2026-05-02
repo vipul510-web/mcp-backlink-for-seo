@@ -41,7 +41,7 @@ Tools like Ahrefs and Moz cost hundreds of dollars a month. This MCP gives you b
 git clone https://github.com/vipul510-web/mcp-backlink-for-seo.git
 cd mcp-backlink-for-seo
 python3 -m venv .venv
-.venv/bin/pip install mcp duckduckgo-search httpx beautifulsoup4 lxml
+.venv/bin/pip install "mcp[cli]>=1.0.0" "ddgs>=9.0.0" httpx beautifulsoup4 lxml
 ```
 
 ### 2. Connect to Claude Desktop
@@ -148,7 +148,12 @@ find_prospects / find_mentions / find_competitor_link_sources
 
 - DuckDuckGo returns a sample of results, not a complete link graph
 - Rate limiting: built-in 1.5s delay between searches to avoid blocks
+- The Wayback CDX endpoint can occasionally return 503 or time out; `check_page_history` retries automatically
 - Common Crawl graph data (full inbound link index) is not yet integrated — contributions welcome
+
+### Changelog (recent)
+
+- **0.1.1** — Switched search from deprecated `duckduckgo-search` to the maintained [`ddgs`](https://pypi.org/project/ddgs/) package (same DuckDuckGo backend; fixes empty search results). Hardened Wayback CDX with HTTPS, longer timeouts, and retries.
 
 ---
 

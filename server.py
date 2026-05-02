@@ -7,11 +7,11 @@ Free backlink discovery using DuckDuckGo, Wayback Machine, and web scraping.
 import json
 import re
 import time
-from urllib.parse import urlparse, urljoin
+from urllib.parse import urljoin
 
 import httpx
 from bs4 import BeautifulSoup
-from duckduckgo_search import DDGS
+from ddgs import DDGS
 from mcp.server.fastmcp import FastMCP
 
 mcp = FastMCP("backlink-mcp")
@@ -31,6 +31,57 @@ def _clean_domain(domain: str) -> str:
     return domain.replace("www.", "")
 
 
+def _ddgs_text_search(query: str, max_results: int) -> tuple[list[dict], str | None]:
+    """Run DuckDuckGo text search via the ddgs package. Returns (results, error)."""
+    results: list[dict] = []
+    try:
+        with DDGS() as ddgs:
+            for r in ddgs.text(query, max_results=min(max_results, 50)):
+                results.append({
+                    "url": r.get("href", ""),
+                    "title": r.get("title", ""),
+                    "snippet": r.get("body", ""),
+                })
+        time.sleep(1.5)
+    except Exception as e:
+        return [], str(e)
+    return results, None
+
+
+def _fetch_wayback_cdx(params: dict) -> tuple[list | None, str | None]:
+    """
+    Fetch CDX JSON from the Wayback Machine with retries.
+
+    Archive.org intermittently returns 503 or times out; we retry with backoff.
+    """
+    cdx_url = "https://web.archive.org/cdx/search/cdx"
+    backoff = [1.0, 2.5, 5.0]
+    last_err = None
+
+    for attempt, delay in enumerate(backoff):
+        try:
+            with httpx.Client(timeout=45.0) as client:
+                resp = client.get(cdx_url, params=params)
+            if resp.status_code == 503:
+                last_err = f"503 Service Unavailable (attempt {attempt + 1})"
+                time.sleep(delay)
+                continue
+            resp.raise_for_status()
+            try:
+                return resp.json(), None
+            except json.JSONDecodeError as e:
+                last_err = f"Invalid CDX JSON: {e}"
+                time.sleep(delay)
+        except (httpx.ReadTimeout, httpx.ConnectTimeout, httpx.TransportError) as e:
+            last_err = str(e)
+            time.sleep(delay)
+        except Exception as e:
+            last_err = str(e)
+            break
+
+    return None, last_err or "Wayback CDX request failed after retries."
+
+
 @mcp.tool()
 def find_mentions(domain: str, max_results: int = 20) -> str:
     """
@@ -47,18 +98,9 @@ def find_mentions(domain: str, max_results: int = 20) -> str:
     """
     domain = _clean_domain(domain)
     query = f'"{domain}" -site:{domain}'
-    results = []
-    try:
-        with DDGS() as ddgs:
-            for r in ddgs.text(query, max_results=min(max_results, 50)):
-                results.append({
-                    "url": r.get("href", ""),
-                    "title": r.get("title", ""),
-                    "snippet": r.get("body", ""),
-                })
-        time.sleep(1.5)
-    except Exception as e:
-        return json.dumps({"error": str(e)})
+    results, err = _ddgs_text_search(query, max_results)
+    if err:
+        return json.dumps({"error": err})
 
     return json.dumps({
         "query": query,
@@ -89,18 +131,9 @@ def find_prospects(niche: str, query_type: str = "write_for_us", max_results: in
         "roundup": f'{niche} "weekly roundup" OR "best of the week" OR "top posts"',
     }
     query = queries.get(query_type, queries["write_for_us"])
-    results = []
-    try:
-        with DDGS() as ddgs:
-            for r in ddgs.text(query, max_results=min(max_results, 50)):
-                results.append({
-                    "url": r.get("href", ""),
-                    "title": r.get("title", ""),
-                    "snippet": r.get("body", ""),
-                })
-        time.sleep(1.5)
-    except Exception as e:
-        return json.dumps({"error": str(e)})
+    results, err = _ddgs_text_search(query, max_results)
+    if err:
+        return json.dumps({"error": err})
 
     return json.dumps({
         "query": query,
@@ -125,18 +158,9 @@ def find_competitor_link_sources(competitor_domain: str, max_results: int = 20) 
     """
     competitor_domain = _clean_domain(competitor_domain)
     query = f'"{competitor_domain}" -site:{competitor_domain}'
-    results = []
-    try:
-        with DDGS() as ddgs:
-            for r in ddgs.text(query, max_results=min(max_results, 50)):
-                results.append({
-                    "url": r.get("href", ""),
-                    "title": r.get("title", ""),
-                    "snippet": r.get("body", ""),
-                })
-        time.sleep(1.5)
-    except Exception as e:
-        return json.dumps({"error": str(e)})
+    results, err = _ddgs_text_search(query, max_results)
+    if err:
+        return json.dumps({"error": err})
 
     return json.dumps({
         "competitor": competitor_domain,
@@ -282,7 +306,6 @@ def check_page_history(url: str) -> str:
     Args:
         url: The URL to check history for
     """
-    cdx_url = "http://web.archive.org/cdx/search/cdx"
     params = {
         "url": url,
         "output": "json",
@@ -290,12 +313,9 @@ def check_page_history(url: str) -> str:
         "fl": "timestamp,statuscode,mimetype",
         "collapse": "timestamp:6",  # one snapshot per month
     }
-    try:
-        with httpx.Client(timeout=20) as client:
-            resp = client.get(cdx_url, params=params)
-            data = resp.json()
-    except Exception as e:
-        return json.dumps({"error": str(e)})
+    data, fetch_err = _fetch_wayback_cdx(params)
+    if fetch_err:
+        return json.dumps({"error": fetch_err, "url": url})
 
     if not data or len(data) < 2:
         return json.dumps({
